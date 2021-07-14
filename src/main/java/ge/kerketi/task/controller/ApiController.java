@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -21,7 +22,7 @@ public class ApiController {
     }
 
     @PostMapping("/register-client")
-    ResponseEntity<String> registerClient(@RequestBody ClientDto clientDto) {
+    ResponseEntity<String> registerClient(@Valid @RequestBody ClientDto clientDto) {
         String response = apiService.registerClient(clientDto);
 
         return new ResponseEntity<>(response,HttpStatus.CREATED);
