@@ -10,7 +10,6 @@ import ge.kerketi.task.repository.ClientRepository;
 import ge.kerketi.task.repository.TransactionHistoryRepository;
 import ge.kerketi.task.repository.WalletRepository;
 import ge.kerketi.task.utils.Enums;
-import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -36,9 +35,10 @@ public class ApiServiceImpl implements ApiService {
 
     private TransactionHistoryRepository transactionHistoryRepository;
 
-    public ApiServiceImpl(ClientRepository clientRepository, WalletRepository walletRepository) {
+    public ApiServiceImpl(ClientRepository clientRepository, WalletRepository walletRepository, TransactionHistoryRepository transactionHistoryRepository) {
         this.clientRepository = clientRepository;
         this.walletRepository = walletRepository;
+        this.transactionHistoryRepository = transactionHistoryRepository;
     }
 
     @Transactional(rollbackOn = Exception.class)
@@ -48,9 +48,8 @@ public class ApiServiceImpl implements ApiService {
         Set<String> currencies = new HashSet<>(Arrays.asList(GEL.name(), USD.name(), EUR.name()));
         Set<Wallet> wallets = new HashSet<>();
 
-        Client client = new Client();
-        BeanUtils.copyProperties(clientDto, client);
-        client.setAccountNumber(String.valueOf(Math.random()));
+        Client client = ClientDto.toEntity(clientDto);
+        client.setAccountNumber(String.valueOf(Math.round(Math.random())));
         clientRepository.save(client);
 
         for (String ccy : currencies) {
@@ -90,7 +89,7 @@ public class ApiServiceImpl implements ApiService {
         List<TransactionHistory> transactionHistories;
 
         if (StringUtils.isEmpty(accountNumber)) {
-            transactionHistories = transactionHistoryRepository.findAll();
+            transactionHistories = (List<TransactionHistory>) transactionHistoryRepository.findAll();
         }
         else {
             transactionHistories = transactionHistoryRepository.findByFromOrToOrderByDateDesc(accountNumber,accountNumber);
@@ -105,7 +104,7 @@ public class ApiServiceImpl implements ApiService {
         transactionHistory.setAmount(amount);
         transactionHistory.setFrom(from);
         transactionHistory.setTo(to);
-        transactionHistory.setInitiator(from);
+        transactionHistory.setInitiator(initiator);
         transactionHistory.setDate(LocalDateTime.now());
 
         transactionHistoryRepository.save(transactionHistory);

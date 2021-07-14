@@ -6,11 +6,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
-@Repository
 public interface TransactionHistoryRepository extends CrudRepository<TransactionHistory, Integer> {
-    
-    @Override
-    List<TransactionHistory> findAll();
 
     List<TransactionHistory>  findByFromOrToOrderByDateDesc(String from, String to);
 }

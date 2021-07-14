@@ -29,10 +29,10 @@ public class ApiController {
     }
 
     @PostMapping("/cash-in")
-    ResponseEntity<Void> cashIn(String pid, String accountNumber, BigDecimal amount, String walletType) {
-        apiService.cashIn(pid,accountNumber,amount,walletType);
+    ResponseEntity<BigDecimal> cashIn(String pid, String accountNumber, BigDecimal amount, String walletType) {
+        BigDecimal response = apiService.cashIn(pid,accountNumber,amount,walletType);
 
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(response,HttpStatus.OK);
     }
 
     @PostMapping("/transfer")

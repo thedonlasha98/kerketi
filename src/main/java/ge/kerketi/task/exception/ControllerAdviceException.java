@@ -19,7 +19,7 @@ public class ControllerAdviceException {
     @ExceptionHandler
     public ResponseEntity<?> handleException(HttpServletRequest req, Exception e) {
         String errorMessage = e.toString();
-        log.error("Request: " + req.getRequestURL() + " raised " + e.getStackTrace().toString());
+        log.error("Request: " + req.getRequestURL() + " raised " + e.getStackTrace()[0].toString());
 
         if (e instanceof GeneralException) {
             errorMessage = ((GeneralException) e).getErrorMessage();
@@ -35,6 +35,7 @@ public class ControllerAdviceException {
             return new ResponseEntity<>(new GeneralExceptionResponse(errorMessage), HttpStatus.BAD_REQUEST);
         } else {
             log.error("Request: " + req.getRequestURL() + " raised " + errorMessage);
+            e.printStackTrace();
             return new ResponseEntity<>(new GeneralExceptionResponse(GENERAL_ERROR.getDescription()), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
