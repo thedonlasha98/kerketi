@@ -2,6 +2,7 @@ package ge.kerketi.task.service;
 
 import ge.kerketi.task.domain.Client;
 import ge.kerketi.task.domain.Wallet;
+import ge.kerketi.task.exception.GeneralException;
 import ge.kerketi.task.model.ClientDto;
 import ge.kerketi.task.repository.ClientRepository;
 import ge.kerketi.task.repository.WalletRepository;
@@ -11,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.*;
 
+import static ge.kerketi.task.exception.ErrorMessage.PERSONAL_NUMBER_ALREADY_EXISTS;
 import static ge.kerketi.task.utils.CCY.*;
 
 @Service
@@ -28,6 +30,10 @@ public class ClientServiceImpl implements ClientService {
     @Transactional(rollbackFor = Exception.class)
     @Override
     public Map<String,String> registerClient(ClientDto clientDto) {
+        boolean exists = clientRepository.existsByPid(clientDto.getPersonalNumber());
+        if (exists){
+            throw new GeneralException(PERSONAL_NUMBER_ALREADY_EXISTS);
+        }
 
         Set<String> currencies = new HashSet<>(Arrays.asList(GEL.name(), USD.name(), EUR.name()));
         Set<Wallet> wallets = new HashSet<>();

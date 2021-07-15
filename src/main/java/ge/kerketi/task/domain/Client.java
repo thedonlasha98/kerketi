@@ -6,6 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Size;
 
 @Data
 @NoArgsConstructor
@@ -28,6 +30,6 @@ public class Client {
     @Column(name = "pid")
     private String pid;
 
-    @Column(name = "account_number")
+    @Column(name = "account_number", length = 9)
     private String accountNumber;
 }

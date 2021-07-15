@@ -11,4 +11,6 @@ public interface ClientRepository extends CrudRepository<Client, Integer> {
 
     @Query(value = "select right(uuid_short(),9)", nativeQuery = true)
     Integer getUniqueAccountNumber();
+
+    boolean existsByPid(String pid);
 }
