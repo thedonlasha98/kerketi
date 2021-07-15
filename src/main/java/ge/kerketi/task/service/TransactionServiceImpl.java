@@ -4,29 +4,24 @@ import ge.kerketi.task.domain.Client;
 import ge.kerketi.task.domain.TransactionHistory;
 import ge.kerketi.task.domain.Wallet;
 import ge.kerketi.task.exception.GeneralException;
-import ge.kerketi.task.model.ClientDto;
 import ge.kerketi.task.model.TransactionDto;
 import ge.kerketi.task.repository.ClientRepository;
 import ge.kerketi.task.repository.TransactionHistoryRepository;
 import ge.kerketi.task.repository.WalletRepository;
 import ge.kerketi.task.utils.Enums;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import javax.transaction.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static ge.kerketi.task.exception.ErrorMessage.*;
-import static ge.kerketi.task.utils.CCY.*;
 
 @Service
-public class ApiServiceImpl implements ApiService {
+public class TransactionServiceImpl implements TransactionService {
 
     private ClientRepository clientRepository;
 
@@ -34,39 +29,15 @@ public class ApiServiceImpl implements ApiService {
 
     private TransactionHistoryRepository transactionHistoryRepository;
 
-    public ApiServiceImpl(ClientRepository clientRepository, WalletRepository walletRepository, TransactionHistoryRepository transactionHistoryRepository) {
+    public TransactionServiceImpl(ClientRepository clientRepository, WalletRepository walletRepository, TransactionHistoryRepository transactionHistoryRepository) {
         this.clientRepository = clientRepository;
         this.walletRepository = walletRepository;
         this.transactionHistoryRepository = transactionHistoryRepository;
     }
 
-    @Transactional(rollbackOn = Exception.class)
+    @Transactional(rollbackFor = Exception.class)
     @Override
-    public String registerClient(ClientDto clientDto) {
-
-        Set<String> currencies = new HashSet<>(Arrays.asList(GEL.name(), USD.name(), EUR.name()));
-        Set<Wallet> wallets = new HashSet<>();
-
-        Client client = ClientDto.toEntity(clientDto);
-        String accountNumber = clientRepository.getUniqueAccountNumber().toString();
-        client.setAccountNumber(accountNumber);
-        clientRepository.save(client);
-
-        for (String ccy : currencies) {
-            Wallet wallet = new Wallet();
-            wallet.setClientId(client.getId());
-            wallet.setWalletType(ccy);
-            wallet.setBalanceAvailable(BigDecimal.ZERO);
-
-            wallets.add(wallet);
-        }
-        walletRepository.saveAll(wallets);
-
-        return client.getAccountNumber();
-    }
-
-    @Override
-    public BigDecimal cashIn(String pid, String accountNumber, BigDecimal amount, String walletType) {
+    public Map<String, BigDecimal> cashIn(String pid, String accountNumber, BigDecimal amount, String walletType) {
         Client client = clientRepository.findByPid(pid).orElseThrow(() -> new GeneralException(COULD_NOT_FOUND_CLIENT_BY_PID));
         Wallet wallet = walletRepository.findByClientIdAndWalletType(client.getId(), walletType).orElseThrow(() -> new GeneralException(COULD_NOT_FOUND_WALLET));
 
@@ -75,26 +46,34 @@ public class ApiServiceImpl implements ApiService {
 
         createTransaction(amount, Enums.KERKETI.name(), Enums.KERKETI.name(), accountNumber);
 
-        return wallet.getBalanceAvailable();
+        Map<String,BigDecimal> response = new HashMap<>();
+        {
+            response.put("Balanse",wallet.getBalanceAvailable());
+        }
+
+        return response;
     }
 
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public void transfer(String fromAccount, String toAccount, BigDecimal amount, String walletType) {
-        Wallet fromWallet = walletRepository.getWalletByAccountNumberAndWalletType(fromAccount,walletType)
+        if (fromAccount.equals(toAccount)){
+            throw new GeneralException(SAME_ACCOUNTS_ERROR);
+        }
+        Wallet fromWallet = walletRepository.getWalletByAccountNumberAndWalletType(fromAccount, walletType)
                 .orElseThrow(() -> new GeneralException(COULD_NOT_FOUND_WALLET.getDescription() + " " + fromAccount));
-        Wallet toWallet = walletRepository.getWalletByAccountNumberAndWalletType(toAccount,walletType)
+        Wallet toWallet = walletRepository.getWalletByAccountNumberAndWalletType(toAccount, walletType)
                 .orElseThrow(() -> new GeneralException(COULD_NOT_FOUND_WALLET.getDescription() + " " + toAccount));
 
-        if (fromWallet.getBalanceAvailable().compareTo(amount) < 0){
+        if (fromWallet.getBalanceAvailable().compareTo(amount) < 0) {
             throw new GeneralException(NOT_ENOUGH_BALANCE);
-        }
-        else {
+        } else {
             fromWallet.setBalanceAvailable(fromWallet.getBalanceAvailable().subtract(amount));
             toWallet.setBalanceAvailable(toWallet.getBalanceAvailable().add(amount));
-            Set<Wallet> wallets = new HashSet<>(Arrays.asList(fromWallet,toWallet));
+            Set<Wallet> wallets = new HashSet<>(Arrays.asList(fromWallet, toWallet));
             walletRepository.saveAll(wallets);
 
-            createTransaction(amount,fromAccount,fromAccount,toAccount);
+            createTransaction(amount, fromAccount, fromAccount, toAccount);
         }
     }
 
@@ -104,9 +83,8 @@ public class ApiServiceImpl implements ApiService {
 
         if (StringUtils.isEmpty(accountNumber)) {
             transactionHistories = (List<TransactionHistory>) transactionHistoryRepository.findAll();
-        }
-        else {
-            transactionHistories = transactionHistoryRepository.findByFromOrToOrderByDateDesc(accountNumber,accountNumber);
+        } else {
+            transactionHistories = transactionHistoryRepository.findByFromOrToOrderByDateDesc(accountNumber, accountNumber);
         }
         return transactionHistories.stream()
                 .map(TransactionDto::toDto)

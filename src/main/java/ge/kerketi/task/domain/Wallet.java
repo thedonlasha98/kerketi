@@ -1,11 +1,8 @@
 package ge.kerketi.task.domain;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
 
 import javax.persistence.*;
 import java.math.BigDecimal;
@@ -17,7 +14,7 @@ import java.math.BigDecimal;
 @Table(name = "tbl_wallet")
 public class Wallet {
     @Id
-    @GeneratedValue (strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Integer id;
 
@@ -31,6 +28,6 @@ public class Wallet {
     private BigDecimal balanceAvailable;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "client_id", nullable = false, insertable = false,updatable = false)
+    @JoinColumn(name = "client_id", nullable = false, insertable = false, updatable = false)
     private Client client;
 }

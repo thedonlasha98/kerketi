@@ -9,8 +9,6 @@ import java.util.Optional;
 public interface ClientRepository extends CrudRepository<Client, Integer> {
     Optional<Client> findByPid(String pid);
 
-    Optional<Client> findByAccountNumber(String fromAccount);
-
     @Query(value = "select right(uuid_short(),9)", nativeQuery = true)
     Integer getUniqueAccountNumber();
 }

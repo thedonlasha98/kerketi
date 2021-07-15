@@ -1,6 +1,5 @@
 package ge.kerketi.task.repository;
 
-import ge.kerketi.task.domain.Client;
 import ge.kerketi.task.domain.Wallet;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
