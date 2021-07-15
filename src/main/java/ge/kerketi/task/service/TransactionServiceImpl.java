@@ -48,7 +48,7 @@ public class TransactionServiceImpl implements TransactionService {
 
         Map<String,BigDecimal> response = new HashMap<>();
         {
-            response.put("Balanse",wallet.getBalanceAvailable());
+            response.put("Balance",wallet.getBalanceAvailable());
         }
 
         return response;
@@ -57,9 +57,6 @@ public class TransactionServiceImpl implements TransactionService {
     @Transactional(rollbackFor = Exception.class)
     @Override
     public void transfer(String fromAccount, String toAccount, BigDecimal amount, String walletType) {
-        if (fromAccount.equals(toAccount)){
-            throw new GeneralException(SAME_ACCOUNTS_ERROR);
-        }
         Wallet fromWallet = walletRepository.getWalletByAccountNumberAndWalletType(fromAccount, walletType)
                 .orElseThrow(() -> new GeneralException(COULD_NOT_FOUND_WALLET.getDescription() + " " + fromAccount));
         Wallet toWallet = walletRepository.getWalletByAccountNumberAndWalletType(toAccount, walletType)
