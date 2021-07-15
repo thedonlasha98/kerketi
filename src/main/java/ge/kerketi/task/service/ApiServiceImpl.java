@@ -22,8 +22,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static ge.kerketi.task.exception.ErrorMessage.COULD_NOT_FOUND_CLIENT_BY_PID;
-import static ge.kerketi.task.exception.ErrorMessage.COULD_NOT_FOUND_WALLET;
+import static ge.kerketi.task.exception.ErrorMessage.*;
 import static ge.kerketi.task.utils.CCY.*;
 
 @Service
@@ -49,7 +48,8 @@ public class ApiServiceImpl implements ApiService {
         Set<Wallet> wallets = new HashSet<>();
 
         Client client = ClientDto.toEntity(clientDto);
-        client.setAccountNumber(String.valueOf(Math.round(Math.random())));
+        String accountNumber = clientRepository.getUniqueAccountNumber().toString();
+        client.setAccountNumber(accountNumber);
         clientRepository.save(client);
 
         for (String ccy : currencies) {
@@ -80,8 +80,22 @@ public class ApiServiceImpl implements ApiService {
 
     @Override
     public void transfer(String fromAccount, String toAccount, BigDecimal amount, String walletType) {
-        Client fromClient = clientRepository.findByAccountNumber(fromAccount).orElseThrow(() -> new GeneralException(COULD_NOT_FOUND_CLIENT_BY_PID));
-        Client toClient = clientRepository.findByAccountNumber(fromAccount).orElseThrow(() -> new GeneralException(COULD_NOT_FOUND_CLIENT_BY_PID));
+        Wallet fromWallet = walletRepository.getWalletByAccountNumberAndWalletType(fromAccount,walletType)
+                .orElseThrow(() -> new GeneralException(COULD_NOT_FOUND_WALLET.getDescription() + " " + fromAccount));
+        Wallet toWallet = walletRepository.getWalletByAccountNumberAndWalletType(toAccount,walletType)
+                .orElseThrow(() -> new GeneralException(COULD_NOT_FOUND_WALLET.getDescription() + " " + toAccount));
+
+        if (fromWallet.getBalanceAvailable().compareTo(amount) < 0){
+            throw new GeneralException(NOT_ENOUGH_BALANCE);
+        }
+        else {
+            fromWallet.setBalanceAvailable(fromWallet.getBalanceAvailable().subtract(amount));
+            toWallet.setBalanceAvailable(toWallet.getBalanceAvailable().add(amount));
+            Set<Wallet> wallets = new HashSet<>(Arrays.asList(fromWallet,toWallet));
+            walletRepository.saveAll(wallets);
+
+            createTransaction(amount,fromAccount,fromAccount,toAccount);
+        }
     }
 
     @Override
